@@ -344,6 +344,7 @@ import org.flowable.engine.impl.repository.DefaultProcessDefinitionLocalizationM
 import org.flowable.engine.impl.scripting.VariableScopeResolverFactory;
 import org.flowable.engine.impl.util.ProcessInstanceHelper;
 import org.flowable.engine.impl.variable.BpmnAggregatedVariableType;
+import org.flowable.engine.impl.variable.ParallelMultiInstanceLoopVariableType;
 import org.flowable.engine.interceptor.CreateExternalWorkerJobInterceptor;
 import org.flowable.engine.interceptor.CreateUserTaskInterceptor;
 import org.flowable.engine.interceptor.ExecutionQueryInterceptor;
@@ -2456,6 +2457,7 @@ public abstract class ProcessEngineConfigurationImpl extends ProcessEngineConfig
             variableTypes.addType(new JsonType(getMaxLengthString(), objectMapper, jsonVariableTypeTrackObjects));
             // longJsonType only needed for reading purposes
             variableTypes.addType(JsonType.longJsonType(getMaxLengthString(), objectMapper, jsonVariableTypeTrackObjects));
+            variableTypes.addType(new ParallelMultiInstanceLoopVariableType(this));
             variableTypes.addType(new BpmnAggregatedVariableType(this));
             variableTypes.addType(new ByteArrayType());
             variableTypes.addType(new SerializableType(serializableVariableTypeTrackDeserializedObjects));

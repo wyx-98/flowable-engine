@@ -606,6 +606,59 @@ public class MultiInstanceTest extends PluggableFlowableTestCase {
 
     @Test
     @Deployment
+    public void testParallelAsyncScriptTasks() {
+        boolean originalEnableCounts = processEngineConfiguration.getPerformanceSettings().isEnableExecutionRelationshipCounts();
+        // We have to disable the relationship counts as those are causing optimistic locking exceptions
+        // when multiple non exclusive jobs try to complete
+        processEngineConfiguration.getPerformanceSettings().setEnableExecutionRelationshipCounts(false);
+
+        try {
+
+            runtimeService.createProcessInstanceBuilder()
+                    .processDefinitionKey("miParallelAsyncScriptTask")
+                    .variable("nrOfLoops", 10)
+                    .start();
+            List<Job> jobs = managementService.createJobQuery().list();
+            // There are 10 jobs for each async execution
+            assertThat(jobs).hasSize(10);
+
+            // When a job fails it is moved to the timer jobs, so it can be executed later
+            waitForJobExecutorToProcessAllJobsAndExecutableTimerJobs(10000000, 200);
+            jobs = managementService.createJobQuery().list();
+            assertThat(jobs).isEmpty();
+            List<Job> timerJobs = managementService.createTimerJobQuery().list();
+            assertThat(timerJobs).isEmpty();
+
+            List<Job> deadLetterJobs = managementService.createDeadLetterJobQuery().list();
+            assertThat(deadLetterJobs).isEmpty();
+
+
+            List<Execution> executions = runtimeService.createExecutionQuery().list();
+            // TODO This still fails because we have multiple parallel executions finishing in the exact same time
+            // thus none of them can see that all are completed and the root execution is never left.
+            // This is happening because we do not do lockFirstParentScope in the ParallelMultiInstanceBehaviour then we
+            // have a problem with the completion of the multi instance execution, since the parallel execution
+            // of the scripts tasks finishes in the exact same time and this the root execution is never left.
+            // If we do a lock, then everything is fine, but we have again the optimistic locking exception
+            assertThat(executions).hasSize(2);
+            Execution processInstanceExecution = null;
+            Execution waitStateExecution = null;
+            for (Execution execution : executions) {
+                if (execution.getId().equals(execution.getProcessInstanceId())) {
+                    processInstanceExecution = execution;
+                } else {
+                    waitStateExecution = execution;
+                }
+            }
+            assertThat(processInstanceExecution).isNotNull();
+            assertThat(waitStateExecution).isNotNull();
+        } finally {
+            processEngineConfiguration.getPerformanceSettings().setEnableExecutionRelationshipCounts(originalEnableCounts);
+        }
+    }
+
+    @Test
+    @Deployment
     public void testParallelScriptTasksCompletionCondition() {
         ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("miParallelScriptTaskCompletionCondition");
         Execution waitStateExecution = runtimeService.createExecutionQuery().activityId("waitState").singleResult();

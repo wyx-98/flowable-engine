@@ -32,6 +32,7 @@ import org.flowable.engine.impl.delegate.ActivityBehavior;
 import org.flowable.engine.impl.persistence.entity.ExecutionEntity;
 import org.flowable.engine.impl.persistence.entity.ExecutionEntityManager;
 import org.flowable.engine.impl.util.CommandContextUtil;
+import org.flowable.engine.impl.variable.ParallelMultiInstanceLoopVariable;
 
 /**
  * @author Joram Barrez
@@ -56,8 +57,8 @@ public class ParallelMultiInstanceBehavior extends MultiInstanceActivityBehavior
         }
 
         setLoopVariable(multiInstanceRootExecution, NUMBER_OF_INSTANCES, nrOfInstances);
-        setLoopVariable(multiInstanceRootExecution, NUMBER_OF_COMPLETED_INSTANCES, 0);
-        setLoopVariable(multiInstanceRootExecution, NUMBER_OF_ACTIVE_INSTANCES, nrOfInstances);
+        setLoopVariable(multiInstanceRootExecution, NUMBER_OF_COMPLETED_INSTANCES, ParallelMultiInstanceLoopVariable.completed(multiInstanceRootExecution.getId()));
+        setLoopVariable(multiInstanceRootExecution, NUMBER_OF_ACTIVE_INSTANCES, ParallelMultiInstanceLoopVariable.active(multiInstanceRootExecution.getId()));
 
         List<ExecutionEntity> concurrentExecutions = new ArrayList<>();
         for (int loopCounter = 0; loopCounter < nrOfInstances; loopCounter++) {
@@ -118,8 +119,8 @@ public class ParallelMultiInstanceBehavior extends MultiInstanceActivityBehavior
         
         DelegateExecution miRootExecution = getMultiInstanceRootExecution(execution);
         if (miRootExecution != null) { // will be null in case of empty collection
-            setLoopVariable(miRootExecution, NUMBER_OF_COMPLETED_INSTANCES, nrOfCompletedInstances);
-            setLoopVariable(miRootExecution, NUMBER_OF_ACTIVE_INSTANCES, nrOfActiveInstances);
+            //setLoopVariable(miRootExecution, NUMBER_OF_COMPLETED_INSTANCES, nrOfCompletedInstances);
+            //setLoopVariable(miRootExecution, NUMBER_OF_ACTIVE_INSTANCES, nrOfActiveInstances);
         }
 
         CommandContextUtil.getActivityInstanceEntityManager().recordActivityEnd((ExecutionEntity) execution, null);
@@ -135,7 +136,7 @@ public class ParallelMultiInstanceBehavior extends MultiInstanceActivityBehavior
         if (executionEntity.getParent() != null) {
 
             executionEntity.inactivate();
-            lockFirstParentScope(executionEntity);
+            //lockFirstParentScope(executionEntity);
 
             // When leaving one of the child executions we need to aggregate the information for it
             // Aggregation of all variables will be done in MultiInstanceActivityBehavior#leave()
